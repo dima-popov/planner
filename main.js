@@ -1,7 +1,7 @@
 class Planner {
   constructor() {
     this.blockList = {};
-    this.c;
+    this.c = {};
   }
 
   setCSize() {
@@ -9,16 +9,16 @@ class Planner {
     this.c.height = window.innerHeight;
   }
 
-  packDefBlockList(obj) {
-    var yp = 0;
-    var step = 30;
+  static packDefBlockList(obj) {
+    let yp = 0;
+    const step = 30;
     for (let i = 1; i < 6; i++) {
       obj[Planner.uid(i)] = {
         width: step * i,
         height: step * i,
         level: i,
-        type: "rect",
-        bgcolor: "#" + Math.floor(Math.random() * 16777215).toString(16),
+        type: 'rect',
+        bgcolor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
         x: 0,
         y: yp,
         selected: false,
@@ -31,70 +31,66 @@ class Planner {
   }
 
   static uid(prefix = 0) {
-    var date = new Date();
+    const date = new Date();
     return (
-      `${prefix}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getMinutes()}` +
-      `${date.getSeconds()}-${date.getMilliseconds()}-${Math.round(
-        Math.random() * 10000
+      `${prefix}-${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getMinutes()}`
+      + `${date.getSeconds()}-${date.getMilliseconds()}-${Math.round(
+        Math.random() * 10000,
       )}-${Math.round(Math.random() * 10000)}`
     );
   }
 
   drawOn(obj = this.blockList) {
-    for (const prop in obj) {
-      if (obj[prop].type == "rect") {
-        var ctx = this.c.getContext("2d");
-        if (obj[prop].selected !== true) {
-           
-        ctx.beginPath();
-        ctx.rect(0, obj[prop].y, obj[prop].width, obj[prop].height);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = obj[prop].bgcolor;
-        ctx.fill();
-        ctx.stroke();
-      
-        }else{
-            
-        ctx.beginPath();
-        ctx.rect(0, obj[prop].y, obj[prop].width, obj[prop].height);
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "blue";
-        ctx.fillStyle = obj[prop].bgcolor;
-        ctx.fill();
-        ctx.stroke();
+    Object.entries(obj).forEach((elmArr) => {
+      const elm = elmArr[1];
+      const id = elmArr[0];
+      if (elm.type == 'rect') {
+        const ctx = this.c.getContext('2d');
+        if (elm.selected !== true) {
+          ctx.beginPath();
+          ctx.rect(0, elm.y, elm.width, elm.height);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = elm.bgcolor;
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.rect(0, elm.y, elm.width, elm.height);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'blue';
+          ctx.fillStyle = elm.bgcolor;
+          ctx.fill();
+          ctx.stroke();
         }
       }
-    }
-  
+    });
   }
 
   detect(x, y) {
-    var detectedArr = [];
-
-    for (const prop in this.blockList) {
+    const detectedArr = [];
+    Object.entries(this.blockList).forEach((elmArr) => {
+      const elm = elmArr[1];
+      const id = elmArr[0];
       if (
-        x > this.blockList[prop].x &&
-        x < this.blockList[prop].x + this.blockList[prop].width
+        x > elm.x
+        && x < elm.x + elm.width
       ) {
         if (
-          y > this.blockList[prop].y &&
-          y < this.blockList[prop].y + this.blockList[prop].height
+          y > elm.y
+          && y < elm.y + elm.height
         ) {
-          detectedArr.push(this.blockList[prop]);
+          detectedArr.push(elm);
         }
       }
-    }
+    });
 
     if (detectedArr.length > 0) {
-      detectedArr.sort(function (a, b) {
-        return b.level - a.level;
-      });
+      detectedArr.sort((a, b) => b.level - a.level);
 
       return detectedArr[0];
-    } else {
-      return false;
     }
+    return false;
   }
 
   select(obj) {
@@ -105,17 +101,18 @@ class Planner {
   }
 
   unselect(obj = this.blockList) {
-    for (const prop in obj) {
-      obj[prop].selected = false;
-    }
+    Object.entries(obj).forEach((elmArr) => {
+      const elm = elmArr[1];
+      const id = elmArr[0];
+      elm.selected = false;
+    });
   }
 
   init(id) {
     this.c = document.getElementById(id);
-
     if (this.c) {
       this.setCSize();
-      this.packDefBlockList(this.blockList);
+      Planner.packDefBlockList(this.blockList);
       this.drawOn();
     }
   }
@@ -123,14 +120,14 @@ class Planner {
 
 const FirstPlanner = new Planner();
 
-FirstPlanner.init("mainCanvas");
+FirstPlanner.init('mainCanvas');
 
-window.addEventListener("resize", () => {
+window.addEventListener('resize', () => {
   FirstPlanner.setCSize();
   FirstPlanner.drawOn();
 });
 
-document.addEventListener("mousemove", function (event) {
+document.addEventListener('mousemove', (event) => {
   FirstPlanner.select(FirstPlanner.detect(event.clientX, event.clientY));
   FirstPlanner.drawOn();
 });
