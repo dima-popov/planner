@@ -95,7 +95,42 @@ class Planner {
     return [];
   }
 
-  detectBlock(x, y) {}
+  detectBlockArr(block = this.selected) {
+    const detectedArr = [];
+    Object.entries(this.blockList).forEach((elmArr) => {
+      const elm = elmArr[1];
+      const id = elmArr[0];
+      if (block.x > elm.x && block.x < elm.x + elm.width) {
+        if (block.y > elm.y && block.y < elm.y + elm.height) {
+          detectedArr.push(elm);
+        } else if (
+          block.y + block.height > elm.y &&
+          block.y + block.height < elm.y + elm.height
+        ) {
+          detectedArr.push(elm);
+        }
+      } else if (
+        block.x + block.width > elm.x &&
+        block.x + block.width < elm.x + elm.width
+      ) {
+        if (block.y > elm.y && block.y < elm.y + elm.height) {
+          detectedArr.push(elm);
+        } else if (
+          block.y + block.height > elm.y &&
+          block.y + block.height < elm.y + elm.height
+        ) {
+          detectedArr.push(elm);
+        }
+      }
+    });
+
+    if (detectedArr.length > 0) {
+      detectedArr.sort((a, b) => b.level - a.level);
+
+      return detectedArr;
+    }
+    return [];
+  }
 
   select(obj) {
     this.unselect();
@@ -168,7 +203,7 @@ canvas.addEventListener("mousedown", (event) => {
 
 canvas.addEventListener("mouseup", (event) => {
   FirstPlanner.mousedown = false;
-  if (FirstPlanner.detectArr(event.clientX, event.clientY).length > 1) {
+  if (FirstPlanner.detectBlockArr().length > 0) {
     FirstPlanner.selected.x = FirstPlanner.startPos.x;
     FirstPlanner.selected.y = FirstPlanner.startPos.y;
     FirstPlanner.drawOn();
