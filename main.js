@@ -17,7 +17,8 @@ class Planner {
     let yp = 0;
     const quantity = 6;
     const step = 30;
-    for (let i = 1; i < quantity; i++) {
+    const shift = 40;
+    for (let i = 1; i <= quantity; i++) {
       obj[Planner.uid(quantity - i)] = {
         width: step * i,
         height: step * i,
@@ -27,9 +28,10 @@ class Planner {
         x: 0,
         y: yp,
         selected: false,
+        highlighted: false,
       };
 
-      yp += step * i;
+      yp += step * i + shift;
     }
 
     return obj;
@@ -48,29 +50,31 @@ class Planner {
   drawOn(obj = this.blockList) {
     const ctx = this.c.getContext("2d");
     ctx.clearRect(0, 0, this.c.width, this.c.height);
+
     Object.entries(obj)
       .sort()
       .forEach((elmArr) => {
         const elm = elmArr[1];
         const id = elmArr[0];
         if (elm.type == "rect") {
-          if (elm.selected !== true) {
-            ctx.beginPath();
-            ctx.rect(elm.x, elm.y, elm.width, elm.height);
-            ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.rect(elm.x, elm.y, elm.width, elm.height);
+          ctx.lineWidth = 4;
+
+          if (elm !== this.selected) {
             ctx.strokeStyle = "black";
-            ctx.fillStyle = elm.bgcolor;
-            ctx.fill();
-            ctx.stroke();
           } else {
-            ctx.beginPath();
-            ctx.rect(elm.x, elm.y, elm.width, elm.height);
-            ctx.lineWidth = 4;
             ctx.strokeStyle = "blue";
-            ctx.fillStyle = elm.bgcolor;
-            ctx.fill();
-            ctx.stroke();
           }
+
+          if (elm.highlighted === true) {
+            ctx.fillStyle = "red";
+          } else {
+            ctx.fillStyle = elm.bgcolor;
+          }
+
+          ctx.fill();
+          ctx.stroke();
         }
       });
   }
@@ -97,54 +101,114 @@ class Planner {
 
   detectBlockArr(block = this.selected) {
     const detectedArr = [];
-    Object.entries(this.blockList).forEach((elmArr) => {
-      const elm = elmArr[1];
-      const id = elmArr[0];
-      if (block.x > elm.x && block.x < elm.x + elm.width) {
-        if (block.y > elm.y && block.y < elm.y + elm.height) {
-          detectedArr.push(elm);
-        } else if (
-          block.y + block.height > elm.y &&
-          block.y + block.height < elm.y + elm.height
-        ) {
-          detectedArr.push(elm);
+    if (this.selected) {
+      const blockCenterX = block.x + block.width / 2;
+      const blockCenterY = block.y + block.height / 2;
+      Object.entries(this.blockList).forEach((elmArr) => {
+        const elm = elmArr[1];
+        const id = elmArr[0];
+        const elmCenterX = elm.x + elm.width / 2;
+        const elmCenterY = elm.y + elm.height / 2;
+
+        if (elm != block) {
+          if (
+            Math.abs(blockCenterX - elmCenterX) <
+            (elm.width + block.width) / 2
+          ) {
+            if (
+              Math.abs(blockCenterY - elmCenterY) <
+              (elm.height + block.height) / 2
+            ) {
+              detectedArr.push(elm);
+            }
+          }
         }
-      } else if (
-        block.x + block.width > elm.x &&
-        block.x + block.width < elm.x + elm.width
-      ) {
-        if (block.y > elm.y && block.y < elm.y + elm.height) {
-          detectedArr.push(elm);
-        } else if (
-          block.y + block.height > elm.y &&
-          block.y + block.height < elm.y + elm.height
-        ) {
-          detectedArr.push(elm);
-        }
-      }
+      });
+    }
+    return detectedArr;
+  }
+
+  highlight(obj, arr) {
+    Object.entries(obj).forEach((elmArr) => {
+      elmArr[1].highlighted = false;
     });
 
-    if (detectedArr.length > 0) {
-      detectedArr.sort((a, b) => b.level - a.level);
+    arr.forEach(function (elm) {
+      elm.highlighted = true;
+    });
+  }
 
-      return detectedArr;
+  detectApproach(block = this.selected) {
+    const buff = 30;
+    if (this.selected) {
+      const blockCenterX = block.x + block.width / 2;
+      const blockCenterY = block.y + block.height / 2;
+      const prevX = block.x;
+      const prevY = block.y;
+      Object.entries(this.blockList).forEach((elmArr) => {
+        const elm = elmArr[1];
+        const id = elmArr[0];
+        const elmCenterX = elm.x + elm.width / 2;
+        const elmCenterY = elm.y + elm.height / 2;
+
+        if (elm != block) {
+          if (
+            Math.abs(blockCenterX - elmCenterX) >
+              (elm.width + block.width) / 2 &&
+            Math.abs(blockCenterX - elmCenterX) <
+              (elm.width + block.width) / 2 + buff
+          ) {
+            if (
+              Math.abs(blockCenterY - elmCenterY) <
+              (elm.height + block.height) / 2
+            ) {
+              if (blockCenterX - elmCenterX < 0) {
+                block.x = elm.x - block.width;
+              } else {
+                block.x = elm.x + elm.width;
+              }
+
+              if (this.detectBlockArr().length > 0) {
+                block.x = prevX;
+              }
+            }
+          }
+
+          if (
+            Math.abs(blockCenterY - elmCenterY) >
+              (elm.height + block.height) / 2 &&
+            Math.abs(blockCenterY - elmCenterY) <
+              (elm.height + block.height) / 2 + buff
+          ) {
+            if (
+              Math.abs(blockCenterX - elmCenterX) <
+              (elm.width + block.width) / 2
+            ) {
+              if (blockCenterY - elmCenterY < 0) {
+                block.y = elm.y - block.height;
+              } else {
+                block.y = elm.y + elm.height;
+              }
+
+              if (this.detectBlockArr().length > 0) {
+                block.y = prevY;
+              }
+            }
+          }
+        }
+      });
     }
-    return [];
   }
 
   select(obj) {
     this.unselect();
     if (obj) {
-      obj.selected = true;
       this.selected = obj;
     }
   }
 
   unselect(obj = this.blockList) {
     Object.entries(obj).forEach((elmArr) => {
-      const elm = elmArr[1];
-      const id = elmArr[0];
-      elm.selected = false;
       this.selected = false;
     });
   }
@@ -162,8 +226,6 @@ class Planner {
     this.c = document.getElementById(id);
     if (this.c) {
       this.setCSize();
-      Planner.packDefBlockList(this.blockList);
-      this.drawOn();
     }
   }
 }
@@ -171,6 +233,33 @@ class Planner {
 const FirstPlanner = new Planner();
 
 FirstPlanner.init("mainCanvas");
+Planner.packDefBlockList(FirstPlanner.blockList);
+
+FirstPlanner.blockList[Planner.uid(10)] = {
+  width: 200,
+  height: 50,
+  level: 10,
+  type: "rect",
+  bgcolor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+  x: 100,
+  y: 10,
+  selected: false,
+  highlighted: false
+};
+
+FirstPlanner.blockList[Planner.uid(11)] = {
+  width: 50,
+  height: 200,
+  level: 11,
+  type: "rect",
+  bgcolor: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
+  x: 100,
+  y: 10,
+  selected: false,
+  highlighted: false
+};
+
+FirstPlanner.drawOn();
 
 window.addEventListener("resize", () => {
   FirstPlanner.setCSize();
@@ -180,6 +269,8 @@ window.addEventListener("resize", () => {
 var canvas = document.getElementById("mainCanvas");
 
 canvas.addEventListener("mousemove", (event) => {
+  FirstPlanner.highlight(FirstPlanner.blockList, FirstPlanner.detectBlockArr());
+  FirstPlanner.detectApproach();
   if (FirstPlanner.mousedown === false) {
     FirstPlanner.select(
       FirstPlanner.detectArr(event.clientX, event.clientY)[0]
@@ -202,8 +293,10 @@ canvas.addEventListener("mousedown", (event) => {
 });
 
 canvas.addEventListener("mouseup", (event) => {
+  var intersected = FirstPlanner.detectBlockArr();
   FirstPlanner.mousedown = false;
-  if (FirstPlanner.detectBlockArr().length > 0) {
+  FirstPlanner.highlight(FirstPlanner.blockList, intersected);
+  if (intersected.length > 0) {
     FirstPlanner.selected.x = FirstPlanner.startPos.x;
     FirstPlanner.selected.y = FirstPlanner.startPos.y;
     FirstPlanner.drawOn();
