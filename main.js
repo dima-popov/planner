@@ -289,10 +289,18 @@ FirstPlanner.drawOn();
 
 window.addEventListener("resize", () => {
   FirstPlanner.setCSize();
-  FirstPlanner.drawOn();
+  drawOnDebounce();
 });
 
 const canvas = document.getElementById("mainCanvas");
+
+var drawOnDebounce = debounce(function () {
+  FirstPlanner.drawOn();
+}, 80);
+
+var moveThrottled = throttle(() => {
+  FirstPlanner.drawOn();
+}, 5);
 
 canvas.addEventListener("mousemove", (event) => {
   FirstPlanner.highlight(FirstPlanner.blockList, FirstPlanner.detectBlockArr());
@@ -303,7 +311,7 @@ canvas.addEventListener("mousemove", (event) => {
     );
   }
   FirstPlanner.moveSelected(event.clientX, event.clientY);
-  FirstPlanner.drawOn();
+  moveThrottled();
 });
 
 canvas.addEventListener("mousedown", (event) => {
@@ -327,3 +335,29 @@ canvas.addEventListener("mouseup", (event) => {
     FirstPlanner.drawOn();
   }
 });
+
+function debounce(func, wait, immediate) {
+  var timeout;
+  return function () {
+    var context = this,
+      args = arguments;
+    var later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    var callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+}
+
+function throttle(f, t) {
+  return function () {
+    const previousCall = this.lastCall;
+    this.lastCall = Date.now();
+    if (previousCall === undefined || this.lastCall - previousCall > t) {
+      f();
+    }
+  };
+}
